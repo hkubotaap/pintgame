@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ヒラピン</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; text-align: center; margin: 0; }
+    #game { max-width: 600px; margin: auto; background: #fff; padding: 1em; min-height: 100vh; }
+    canvas, img, video { max-width: 100%; display: block; margin: auto; }
+    canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+    .hidden { display: none; }
+    button { margin: 0.5em auto; padding: 1em 2em; font-size: 1.1em; width: 80%; max-width: 300px; }
+    .option-button { display: block; }
+    #result, #scoreboard { font-weight: bold; font-size: 1.2em; margin-top: 1em; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+
+<div id="start">
+  <h1>ヒラピン</h1>
+  <section style="text-align:left; background:#fff; padding:1em; margin:1em auto; max-width:600px; border-radius:10px;">
+    <h2>🧠 ゲームの説明</h2>
+    <ul>
+      <li>画像や動画がモザイク状態から徐々に表示されていきます。</li>
+      <li>4つの選択肢から正解を選んでください。</li>
+      <li>制限時間は20秒、不正解で10秒減少。</li>
+      <li>10問正解後はサイトを更新したらスタートに戻れます。</li>
+    </ul>
+  </section>
+  <button id="startBtn">スタート</button>
+</div>
+
+<div id="game" class="hidden">
+  <p>スコア: <span id="score">0</span> ／ 時間: <span id="time">--</span>秒</p>
+  <div style="position: relative;">
+    <img id="img" class="hidden" />
+    <video id="vid" class="hidden" autoplay muted controls></video>
+    <canvas id="mosaic"></canvas>
+  </div>
+  <div id="choices"></div>
+  <p id="result"></p>
+  <button id="next" class="hidden">次の問題へ</button>
+  <p id="scoreboard" class="hidden"></p>
+  <button id="postBtn" class="hidden">Xにポスト</button>
+</div>
+
+<footer>
+  <hr>
+  <p>
+    <a href="setsumei.html" target="_blank">説明</a> /
+    <a href="kiyaku.html" target="_blank">利用規約</a> /
+    <a href="contact.html" target="_blank">問い合わせ</a>
+  </p>
+</footer>
+
+<audio id="se" src="SE.mp3"></audio>
+<audio id="bgm" src="BGM.mp3" loop></audio>
+<audio id="correct" src="正解.mp3"></audio>
+<audio id="wrong" src="NG.mp3"></audio>
+<audio id="click" src="回答.mp3"></audio>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const canvas = $("mosaic"), ctx = canvas.getContext("2d");
+
+  let score = 0, count = 0, answer = "", timer = null;
+  let time = 20;
+  const max = 10;
+  let mosaicActive = false, seTimer = [], correctAnswered = false;
+
+  $("startBtn").onclick = () => {
+    $("start").classList.add("hidden");
+    $("game").classList.remove("hidden");
+    score = 0; count = 0; $("score").textContent = score;
+    $("next").classList.add("hidden");
+    $("scoreboard").classList.add("hidden");
+    $("postBtn").classList.add("hidden");
+    loadQuestion();
+  };
+
+  $("next").onclick = () => {
+    $("result").textContent = "";
+    $("next").classList.add("hidden");
+    loadQuestion();
+  };
+
+  function loadQuestion() {
+    if (count >= max) return showScore();
+    $("bgm").currentTime = 0;
+    $("bgm").play();
+    setTimeout(() => $("bgm").pause(), 1000);
+
+    fetch("/api/question").then(r => r.json()).then(data => {
+      count++;
+      correctAnswered = false;
+      answer = normalize(data.correctAnswer);
+      $("img").classList.add("hidden");
+      $("vid").classList.add("hidden");
+      canvas.style.display = "block";
+      $("choices").innerHTML = "";
+
+      data.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "option-button";
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(opt);
+        $("choices").appendChild(btn);
+      });
+
+      const media = data.type === "image" ? $("img") : $("vid");
+      media.src = data.imageUrl;
+      media.onload = media.onloadeddata = () => {
+        const w = media.videoWidth || media.naturalWidth;
+        const h = media.videoHeight || media.naturalHeight;
+        if (!w || !h) return showError();
+        canvas.width = w; canvas.height = h;
+        applyMosaic(media);
+        media.classList.remove("hidden");
+      };
+    });
+
+    time = 20;
+    $("time").textContent = time;
+    clearInterval(timer);
+    timer = setInterval(() => {
+      time--;
+      $("time").textContent = time;
+      if (time <= 0) {
+        clearInterval(timer);
+        stopSE();
+        $("result").textContent = `時間切れ！ 正解は「${answer}」`;
+        $("wrong").play();
+        disableAll();
+        $("next").classList.remove("hidden");
+      }
+    }, 1000);
+  }
+
+  function checkAnswer(input) {
+  $("click").currentTime = 0;
+  $("click").play();
+  if (correctAnswered) return;
+
+  disableAll(); // 一旦すべての選択肢を無効化
+
+  const isCorrect = normalize(input) === answer;
+
+  setTimeout(() => {
+    if (isCorrect) {
+      correctAnswered = true;
+      clearInterval(timer);
+      stopSE();
+      $("correct").play();
+      $("result").textContent = "正解！";
+
+      let point = 1;
+      if (time >= 16) point = 3;
+      else if (time >= 11) point = 2;
+      score += point;
+
+      $("score").textContent = score;
+      $("next").classList.remove("hidden");
+    } else {
+      $("wrong").play();
+      $("result").textContent = `不正解…もう一度考えてみよう！`;
+      time = Math.max(0, time - 10);
+      $("time").textContent = time;
+
+      if (time === 0) {
+        clearInterval(timer);
+        stopSE();
+        $("result").textContent = `時間切れ！ 正解は「${answer}」`;
+        $("next").classList.remove("hidden");
+      } else {
+        enableAll(); // 不正解かつ時間残りあり→再び選べるようにする
+      }
+    }
+  }, 1000);
+}
+
+function disableAll() {
+  [...$("choices").children].forEach(btn => btn.disabled = true);
+}
+
+function enableAll() {
+  [...$("choices").children].forEach(btn => btn.disabled = false);
+}
+
+  function showScore() {
+    $("scoreboard").classList.remove("hidden");
+    $("scoreboard").innerHTML = `あなたの成績：${score}点／${max}問`;
+    $("postBtn").classList.remove("hidden");
+    $("postBtn").onclick = () => {
+      const tweet = encodeURIComponent(`ヒラピンで ${score} 点獲得しました！ #ヒラピン`);
+      const url = `https://twitter.com/intent/tweet?text=${tweet}`;
+      window.open(url, "_blank");
+    };
+  }
+
+  function applyMosaic(media) {
+    const size = 40;
+    const blocks = [];
+    mosaicActive = true;
+    const w = canvas.width = media.videoWidth || media.naturalWidth;
+    const h = canvas.height = media.videoHeight || media.naturalHeight;
+
+    for (let y = 0; y < h; y += size) {
+      for (let x = 0; x < w; x += size) {
+        const dx = x - w / 2;
+        const dy = y - h / 2;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        blocks.push({ x, y, dist });
+      }
+    }
+
+    blocks.sort((a, b) => a.dist - b.dist);
+    ctx.fillStyle = "black";
+    blocks.forEach(b => ctx.fillRect(b.x, b.y, size, size));
+
+    startSESequence();
+
+    let step = 0;
+    const maxSteps = 40;
+    const total = blocks.length;
+    const frameInterval = 5000 / maxSteps;
+    const startTime = performance.now();
+
+    function stepMosaic(currentTime) {
+      if (!mosaicActive) return;
+      const elapsed = currentTime - startTime;
+      const currentStep = Math.floor(elapsed / frameInterval);
+      if (currentStep > step && currentStep <= maxSteps) {
+        const start = total - (currentStep * total / maxSteps);
+        const end = total - ((currentStep - 1) * total / maxSteps);
+        for (let j = Math.floor(start); j < Math.floor(end); j++) {
+          const b = blocks[j];
+          ctx.clearRect(b.x, b.y, size, size);
+        }
+        step = currentStep;
+      }
+      if (step < maxSteps) requestAnimationFrame(stepMosaic);
+      else canvas.style.display = "none";
+    }
+
+    requestAnimationFrame(stepMosaic);
+  }
+
+  function startSESequence() {
+    const se = $("se");
+    seTimer = Array.from({ length: 20 }, (_, i) =>
+      setTimeout(() => {
+        if (mosaicActive) {
+          se.currentTime = 0;
+          se.play().catch(() => {});
+        }
+      }, i * 1000)
+    );
+    seTimer.push(setTimeout(() => stopSE(), 20000));
+  }
+
+  function stopSE() {
+    mosaicActive = false;
+    seTimer.forEach(t => clearTimeout(t));
+    seTimer = [];
+    const se = $("se");
+    se.pause(); se.currentTime = 0;
+  }
+
+  function normalize(str) {
+    return str.toLowerCase().replace(/[ー・\s\-_]/g, '')
+      .normalize("NFKC")
+      .replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 96))
+      .trim();
+  }
+
+  function showError() {
+    $("result").textContent = "メディアの読み込みに失敗しました。";
+    $("next").classList.remove("hidden");
+  }
+</script>
+
+</body>
+</html>
