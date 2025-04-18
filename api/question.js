@@ -2,64 +2,64 @@
 const axios = require('axios');
 const cors = require('cors');
 
-// ŠÂ‹«•Ï”‚©‚çAPIƒL[‚ğæ“¾
+// ç’°å¢ƒå¤‰æ•°ã‹ã‚‰APIã‚­ãƒ¼ã‚’å–å¾—
 const PIXABAY_KEY = process.env.PIXABAY_KEY;
 
-// ƒL[ƒ[ƒh’è‹`
-const ‰æ‘œƒL[ƒ[ƒh = ['ƒlƒR', 'ƒCƒk', 'ƒEƒ}', 'ƒgƒŠ', 'ƒEƒTƒM', 'ƒNƒ‹ƒ}', 'ƒfƒ“ƒVƒƒ', 'ƒrƒ‹'];
-const “®‰æƒL[ƒ[ƒh = ['ƒhƒ[ƒ“', 'ƒeƒNƒmƒƒW[', 'ƒqƒg', 'ƒVƒeƒB', 'ƒXƒ|[ƒc', 'ƒlƒCƒ`ƒƒ['];
+// ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰å®šç¾©
+const ç”»åƒã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰ = ['ãƒã‚³', 'ã‚¤ãƒŒ', 'ã‚¦ãƒ', 'ãƒˆãƒª', 'ã‚¦ã‚µã‚®', 'ã‚¯ãƒ«ãƒ', 'ãƒ‡ãƒ³ã‚·ãƒ£', 'ãƒ“ãƒ«'];
+const å‹•ç”»ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰ = ['ãƒ‰ãƒ­ãƒ¼ãƒ³', 'ãƒ†ã‚¯ãƒãƒ­ã‚¸ãƒ¼', 'ãƒ’ãƒˆ', 'ã‚·ãƒ†ã‚£', 'ã‚¹ãƒãƒ¼ãƒ„', 'ãƒã‚¤ãƒãƒ£ãƒ¼'];
 
-// ƒ†[ƒeƒBƒŠƒeƒBŠÖ”
-const ƒ‰ƒ“ƒ_ƒ€ = arr => arr[Math.floor(Math.random() * arr.length)];
-const ƒVƒƒƒbƒtƒ‹ = arr => [...arr].sort(() => Math.random() - 0.5);
+// ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£é–¢æ•°
+const ãƒ©ãƒ³ãƒ€ãƒ  = arr => arr[Math.floor(Math.random() * arr.length)];
+const ã‚·ãƒ£ãƒƒãƒ•ãƒ« = arr => [...arr].sort(() => Math.random() - 0.5);
 
-// Vercel‚ÌƒT[ƒo[ƒŒƒXŠÖ”
+// Vercelã®ã‚µãƒ¼ãƒãƒ¼ãƒ¬ã‚¹é–¢æ•°
 module.exports = async (req, res) => {
-  // CORSƒwƒbƒ_[İ’è
+  // CORSãƒ˜ãƒƒãƒ€ãƒ¼è¨­å®š
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // OPTIONSƒŠƒNƒGƒXƒg‚É‘Î‰
+  // OPTIONSãƒªã‚¯ã‚¨ã‚¹ãƒˆã«å¯¾å¿œ
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const í—Ş = ƒ‰ƒ“ƒ_ƒ€(['image', 'video']);
+  const ç¨®é¡ = ãƒ©ãƒ³ãƒ€ãƒ (['image', 'video']);
   try {
-    if (í—Ş === 'image') {
-      const ƒL[ƒ[ƒh = ƒ‰ƒ“ƒ_ƒ€(‰æ‘œƒL[ƒ[ƒh);
-      const r = await axios.get(`https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(ƒL[ƒ[ƒh)}&image_type=photo&lang=ja&per_page=10`);
+    if (ç¨®é¡ === 'image') {
+      const ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰ = ãƒ©ãƒ³ãƒ€ãƒ (ç”»åƒã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰);
+      const r = await axios.get(`https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰)}&image_type=photo&lang=ja&per_page=10`);
       const hits = r.data.hits;
-      if (!hits || !hits.length) throw new Error('‰æ‘œæ“¾¸”s');
-      const ³‰ğ‰æ‘œ = ƒ‰ƒ“ƒ_ƒ€(hits);
-      const Œë“š = ƒVƒƒƒbƒtƒ‹(‰æ‘œƒL[ƒ[ƒh.filter(k => k !== ƒL[ƒ[ƒh)).slice(0, 3);
-      const ‘I‘ğˆ = ƒVƒƒƒbƒtƒ‹([ƒL[ƒ[ƒh, ...Œë“š]);
+      if (!hits || !hits.length) throw new Error('ç”»åƒå–å¾—å¤±æ•—');
+      const æ­£è§£ç”»åƒ = ãƒ©ãƒ³ãƒ€ãƒ (hits);
+      const èª¤ç­” = ã‚·ãƒ£ãƒƒãƒ•ãƒ«(ç”»åƒã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰.filter(k => k !== ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰)).slice(0, 3);
+      const é¸æŠè‚¢ = ã‚·ãƒ£ãƒƒãƒ•ãƒ«([ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰, ...èª¤ç­”]);
       
       return res.status(200).json({
         type: 'image',
-        imageUrl: ³‰ğ‰æ‘œ.webformatURL,
-        options: ‘I‘ğˆ,
-        correctAnswer: ƒL[ƒ[ƒh
+        imageUrl: æ­£è§£ç”»åƒ.webformatURL,
+        options: é¸æŠè‚¢,
+        correctAnswer: ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰
       });
     } else {
-      const ƒL[ƒ[ƒh = ƒ‰ƒ“ƒ_ƒ€(“®‰æƒL[ƒ[ƒh);
-      const r = await axios.get(`https://pixabay.com/api/videos/?key=${PIXABAY_KEY}&q=${encodeURIComponent(ƒL[ƒ[ƒh)}&lang=ja&per_page=10`);
+      const ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰ = ãƒ©ãƒ³ãƒ€ãƒ (å‹•ç”»ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰);
+      const r = await axios.get(`https://pixabay.com/api/videos/?key=${PIXABAY_KEY}&q=${encodeURIComponent(ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰)}&lang=ja&per_page=10`);
       const hits = r.data.hits;
-      if (!hits || !hits.length) throw new Error('“®‰ææ“¾¸”s');
-      const ³‰ğ“®‰æ = ƒ‰ƒ“ƒ_ƒ€(hits);
-      const Œë“š = ƒVƒƒƒbƒtƒ‹(“®‰æƒL[ƒ[ƒh.filter(k => k !== ƒL[ƒ[ƒh)).slice(0, 3);
-      const ‘I‘ğˆ = ƒVƒƒƒbƒtƒ‹([ƒL[ƒ[ƒh, ...Œë“š]);
+      if (!hits || !hits.length) throw new Error('å‹•ç”»å–å¾—å¤±æ•—');
+      const æ­£è§£å‹•ç”» = ãƒ©ãƒ³ãƒ€ãƒ (hits);
+      const èª¤ç­” = ã‚·ãƒ£ãƒƒãƒ•ãƒ«(å‹•ç”»ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰.filter(k => k !== ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰)).slice(0, 3);
+      const é¸æŠè‚¢ = ã‚·ãƒ£ãƒƒãƒ•ãƒ«([ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰, ...èª¤ç­”]);
       
       return res.status(200).json({
         type: 'video',
-        imageUrl: ³‰ğ“®‰æ.videos.medium.url,
-        options: ‘I‘ğˆ,
-        correctAnswer: ƒL[ƒ[ƒh
+        imageUrl: æ­£è§£å‹•ç”».videos.medium.url,
+        options: é¸æŠè‚¢,
+        correctAnswer: ã‚­ãƒ¼ãƒ¯ãƒ¼ãƒ‰
       });
     }
   } catch (err) {
-    console.error('–â‘èæ“¾ƒGƒ‰[:', err.message);
-    return res.status(500).json({ error: '–â‘èæ“¾¸”s', message: err.message });
+    console.error('å•é¡Œå–å¾—ã‚¨ãƒ©ãƒ¼:', err.message);
+    return res.status(500).json({ error: 'å•é¡Œå–å¾—å¤±æ•—', message: err.message });
   }
 };
